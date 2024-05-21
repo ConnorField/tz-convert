@@ -1,6 +1,8 @@
 use chrono::prelude::*;
 use prettytable::{Table, row};
 use colored::*;
+use dialoguer::Input;
+use chrono::NaiveDateTime;
 
 fn main() {
     let local_time = Local::now();
@@ -37,4 +39,45 @@ fn main() {
     }
 
     table.printstd();
+
+    // Prompt the user to enter a time
+    let input_time: String = Input::new()
+        .with_prompt("Enter a time in your local timezone (YYYY-MM-DD HH:MM, e.g., 2024-05-21 15:30)")
+        .interact_text()
+        .unwrap();
+
+    // Parse the user input
+    let naive_time = match NaiveDateTime::parse_from_str(&input_time, "%Y-%m-%d %H:%M") {
+        Ok(dt) => dt,
+        Err(_) => {
+            eprintln!("{}", "Invalid time format. Please use YYYY-MM-DD HH:MM.".bold().red().to_string());
+            return;
+        }
+    };
+
+    // Convert the naive datetime to local datetime
+    let user_time = Local.from_local_datetime(&naive_time).unwrap();
+
+    // Create a new table for the specified time
+    let mut specified_table = Table::new();
+    specified_table.add_row(row![
+        "Timezone".bold().underline().cyan().to_string(),
+        "Specified Time".bold().underline().cyan().to_string()
+    ]);
+
+    specified_table.add_row(row![
+        "Local time".bold().green().to_string(),
+        user_time.format("%Y-%m-%d %H:%M:%S %Z").to_string()
+    ]);
+
+    for (name, tz) in &timezones {
+        let tz_time = user_time.with_timezone(tz);
+        specified_table.add_row(row![
+            name.bold().blue().to_string(),
+            tz_time.format("%Y-%m-%d %H:%M:%S %Z").to_string()
+        ]);
+    }
+
+    println!("\nTime for the specified input:");
+    specified_table.printstd();
 }
