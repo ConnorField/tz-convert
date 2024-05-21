@@ -1,8 +1,39 @@
 use chrono::prelude::*;
 use chrono_tz::Tz;
-use prettytable::{Table, row, cell};
+use prettytable::{Table, row};
 use colored::*;
-use std::env;
+use std::fs;
+use std::path::PathBuf;
+
+fn get_local_timezone() -> Option<String> {
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(tz) = std::env::var("TZ") {
+            return Some(tz);
+        }
+    }
+
+    #[cfg(unix)]
+    {
+        if let Ok(link) = fs::read_link("/etc/localtime") {
+            if let Some(tz) = link.to_str() {
+                if tz.starts_with("/usr/share/zoneinfo/") {
+                    let tz = &tz["/usr/share/zoneinfo/".len()..];
+                    return Some(tz.to_string());
+                }
+            }
+        }
+
+        let tz_path = PathBuf::from("/etc/timezone");
+        if tz_path.exists() {
+            if let Ok(tz) = fs::read_to_string(tz_path) {
+                return Some(tz.trim().to_string());
+            }
+        }
+    }
+
+    None
+}
 
 fn main() {
     let local_time = Local::now();
@@ -30,8 +61,8 @@ fn main() {
         local_time.format("%Y-%m-%d %H:%M:%S %Z").to_string()
     ]);
 
-    for (name, tz) in timezones {
-        let tz_time = local_time.with_timezone(&tz);
+    for (name, tz) in &timezones {
+        let tz_time = local_time.with_timezone(tz);
         table.add_row(row![
             name.bold().blue().to_string(),
             tz_time.format("%Y-%m-%d %H:%M:%S %Z").to_string()
@@ -39,24 +70,4 @@ fn main() {
     }
 
     table.printstd();
-
-    if let Ok(tz_str) = env::var("TZ") {
-        match tz_str.parse::<Tz>() {
-            Ok(system_tz) => {
-                let system_time = local_time.with_timezone(&system_tz);
-                println!(
-                    "\n{}{}{}",
-                    "System configured timezone (".bold().yellow().to_string(),
-                    tz_str.bold().yellow().to_string(),
-                    format!(
-                        ") time: {}",
-                        system_time.format("%Y-%m-%d %H:%M:%S %Z")
-                    ).bold().yellow().to_string()
-                );
-            },
-            Err(_) => println!("{}", "Failed to parse system timezone.".bold().red().to_string()),
-        }
-    } else {
-        println!("{}", "TZ environment variable is not set.".bold().red().to_string());
-    }
 }
