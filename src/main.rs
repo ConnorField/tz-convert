@@ -1,39 +1,6 @@
 use chrono::prelude::*;
-use chrono_tz::Tz;
 use prettytable::{Table, row};
 use colored::*;
-use std::fs;
-use std::path::PathBuf;
-
-fn get_local_timezone() -> Option<String> {
-    #[cfg(target_os = "windows")]
-    {
-        if let Ok(tz) = std::env::var("TZ") {
-            return Some(tz);
-        }
-    }
-
-    #[cfg(unix)]
-    {
-        if let Ok(link) = fs::read_link("/etc/localtime") {
-            if let Some(tz) = link.to_str() {
-                if tz.starts_with("/usr/share/zoneinfo/") {
-                    let tz = &tz["/usr/share/zoneinfo/".len()..];
-                    return Some(tz.to_string());
-                }
-            }
-        }
-
-        let tz_path = PathBuf::from("/etc/timezone");
-        if tz_path.exists() {
-            if let Ok(tz) = fs::read_to_string(tz_path) {
-                return Some(tz.trim().to_string());
-            }
-        }
-    }
-
-    None
-}
 
 fn main() {
     let local_time = Local::now();
