@@ -7,3 +7,5 @@ authors = ["Connor Field <connor@connorfield.com>"]
 [dependencies]
 chrono = "0.4"
 chrono-tz = "0.6"
+prettytable = "0.10.0"
+colored = "2.0"
