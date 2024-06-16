@@ -6,60 +6,98 @@ on:
       - main
 
 jobs:
-  build:
+  build-linux:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
 
-    - name: Build project
-      run: cargo build --release
+      - name: Build project
+        run: cargo build --release
 
-    - name: Upload Release Asset
-      uses: actions/upload-artifact@v3
-      with:
-        name: binary
-        path: target/release/tz-convert
+      - name: Upload Release Asset
+        uses: actions/upload-artifact@v3
+        with:
+          name: binary-linux
+          path: target/release/tz-convert
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable-x86_64-pc-windows-msvc
+
+      - name: Build project
+        run: cargo build --release
+
+      - name: Upload Release Asset
+        uses: actions/upload-artifact@v3
+        with:
+          name: binary-windows
+          path: target/release/tz-convert.exe
 
   release:
-    needs: build
+    needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
 
     steps:
-    - name: Download binary
-      uses: actions/download-artifact@v3
-      with:
-        name: binary
-        path: .
+      - name: Download Linux binary
+        uses: actions/download-artifact@v3
+        with:
+          name: binary-linux
+          path: .
 
-    - name: Set up version tag
-      id: vars
-      run: echo "RELEASE_TAG=v1.0.0-$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
+      - name: Download Windows binary
+        uses: actions/download-artifact@v3
+        with:
+          name: binary-windows
+          path: .
 
-    - name: Create GitHub Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ env.RELEASE_TAG }}
-        release_name: Release ${{ env.RELEASE_TAG }}
-        draft: false
-        prerelease: false
+      - name: Set up version tag
+        id: vars
+        run: |
+          TAG_NAME=$(date +'%Y%m%d%H%M%S')
+          echo "RELEASE_TAG=v$TAG_NAME" >> $GITHUB_ENV
+          echo "RELEASE_NAME=Release $TAG_NAME" >> $GITHUB_ENV
 
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./tz-convert
-        asset_name: tz-convert
-        asset_content_type: application/octet-stream
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          release_name: ${{ env.RELEASE_NAME }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Linux binary to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./tz-convert
+          asset_name: tz-convert-linux
+          asset_content_type: application/octet-stream
+
+      - name: Upload Windows binary to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./tz-convert.exe
+          asset_name: tz-convert-windows.exe
+          asset_content_type: application/octet-stream
 
