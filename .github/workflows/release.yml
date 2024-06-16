@@ -55,13 +55,13 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: binary-linux
-          path: .
+          path: ./tz-convert-linux
 
       - name: Download Windows binary
         uses: actions/download-artifact@v3
         with:
           name: binary-windows
-          path: .
+          path: ./tz-convert-windows.exe
 
       - name: Set up version tag
         id: vars
@@ -69,6 +69,7 @@ jobs:
           TAG_NAME=$(date +'%Y%m%d%H%M%S')
           echo "RELEASE_TAG=v$TAG_NAME" >> $GITHUB_ENV
           echo "RELEASE_NAME=Release $TAG_NAME" >> $GITHUB_ENV
+          echo "RELEASE_DESC=Automatic build for commit $GITHUB_SHA. [View commit](https://github.com/${{ github.repository }}/commit/$GITHUB_SHA)" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         id: create_release
@@ -78,6 +79,7 @@ jobs:
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           release_name: ${{ env.RELEASE_NAME }}
+          body: ${{ env.RELEASE_DESC }}
           draft: false
           prerelease: false
 
@@ -87,7 +89,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./tz-convert
+          asset_path: ./tz-convert-linux
           asset_name: tz-convert-linux
           asset_content_type: application/octet-stream
 
@@ -97,7 +99,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./tz-convert.exe
+          asset_path: ./tz-convert-windows.exe
           asset_name: tz-convert-windows.exe
           asset_content_type: application/octet-stream
 
