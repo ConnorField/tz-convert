@@ -102,4 +102,3 @@ jobs:
           asset_path: ./tz-convert-windows.exe
           asset_name: tz-convert-windows.exe
           asset_content_type: application/octet-stream
-
